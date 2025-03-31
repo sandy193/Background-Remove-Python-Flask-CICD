@@ -17,7 +17,7 @@ pipeline {
         }
         stage("SonarQube Analysis") {
             steps {
-                withSonarQubeEnv('sonar-secret') {
+                withSonarQubeEnv('sonar-server') {
                     sh ''' $SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=background-remover-python-app \
                     -Dsonar.projectKey=background-remover-python-app '''
                 }
@@ -26,7 +26,7 @@ pipeline {
         stage("Quality Gate") {
             steps {
                 script {
-                    waitForQualityGate abortPipeline: true, credentialsId: 'sonar-token'
+                    waitForQualityGate abortPipeline: true, credentialsId: 'sonar-secret'
                 }
             }
         }
@@ -43,14 +43,14 @@ pipeline {
         }
        stage('Build and Push Docker Image') {
          environment {
-            REGISTRY_CREDENTIALS = credentials('docker-secret')
+            REGISTRY_CREDENTIALS = credentials('dockerhub-secret')
       }
       steps {
         script {
             sh 'docker context use default'  
             sh "docker build -t ${DOCKER_IMAGE} ."
             def dockerImage = docker.image("${DOCKER_IMAGE}")
-            docker.withRegistry('https://index.docker.io/v1/', "docker-secret") {
+            docker.withRegistry('https://index.docker.io/v1/', "dockerhub-secret") {
                 dockerImage.push()
             }
         }
